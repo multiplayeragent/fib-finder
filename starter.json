@@ -1,0 +1,21 @@
+{
+  "name": "Fib Finder",
+  "genre": "party",
+  "dim": "2D",
+  "mode": "Party",
+  "players": "3–10",
+  "hook": "Write a fake answer. Spot the real one.",
+  "how": "A strange true fact appears with a word missing. Everyone writes a fake answer, then all the fakes and the truth are shown together: find the real one, and score again for everyone your fake fools.",
+  "controls": "Type your fake and press Enter; click or tap an answer to vote (or press 1–9)",
+  "uses": [
+    ["Hidden info", "Your fake is sealed so only the host can read it until the vote (the host builds the answer list)."],
+    ["Host-run rounds", "The host's browser runs the timers, builds the answer list and scores every vote; if it leaves, the next player takes over."],
+    ["Bots", "Bots write fakes and vote until enough people join."],
+    ["Leaderboard", "Each player's best game, in points."]
+  ],
+  "ideas": [
+    "Make a question pack about movies",
+    "Make the last round worth double points",
+    "Add a vote for the funniest fake"
+  ]
+}

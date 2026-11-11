@@ -1,0 +1,827 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fib Finder</title>
+<style>
+  :root { --bg: #14213d; --bg2: #22356a; --card: #fff6e6; --ink: #1b2340; --dim: #a9b8dc; --gold: #ffc94a; --coral: #ff6b57; --mint: #35dba8; --sky: #6fb6ff; }
+  html, body { margin: 0; height: 100%; overflow: hidden; overscroll-behavior: none; }
+  body { background: radial-gradient(900px 600px at 10% -10%, #3a4f9a, transparent 60%), radial-gradient(700px 600px at 110% 110%, #6a2a5c, transparent 60%), var(--bg);
+         color: #fff; font: 16px/1.35 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+  [hidden] { display: none !important; }
+  #app { height: 100%; display: flex; flex-direction: column; max-width: 820px; margin: 0 auto; box-sizing: border-box;
+         padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+  header { display: flex; align-items: center; gap: 12px; min-height: 44px; }
+  header h1 { margin: 0; font-size: 21px; font-weight: 900; letter-spacing: .01em; white-space: nowrap; }
+  header h1 span { color: var(--gold); }
+  #rn { margin-left: auto; font-weight: 800; color: var(--dim); white-space: nowrap; }
+  #name { width: 130px; height: 38px; border-radius: 10px; border: 1px solid #ffffff33; background: #ffffff14; color: #fff; padding: 0 10px; font: inherit; font-size: 16px; box-sizing: border-box; }
+  #bar { height: 10px; border-radius: 6px; background: #ffffff1a; margin: 10px 0 12px; overflow: hidden; flex: none; }
+  #bar i { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, var(--mint), var(--gold), var(--coral)); transform-origin: left; }
+  main { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding: 4px 6px 6px; margin: 0 -6px; }
+  #qcard { background: var(--card); color: var(--ink); border-radius: 20px; padding: 18px 20px; box-shadow: 0 8px 0 #0004; position: relative; margin-top: 4px; }
+  #tag { position: absolute; top: -11px; left: 18px; background: var(--coral); color: #fff; font-weight: 900; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; padding: 3px 10px; border-radius: 999px; }
+  #q { font-size: clamp(20px, 4.2vw, 30px); font-weight: 800; text-wrap: balance; }
+  #q .blank { display: inline-block; min-width: 3.2em; border-bottom: 4px solid var(--coral); margin: 0 .1em; }
+  #q .fill { display: inline-block; color: #0b8a63; border-bottom: 4px solid var(--mint); padding: 0 .12em; animation: pop .45s cubic-bezier(.2, 1.6, .4, 1); }
+  #sub { text-align: center; color: var(--dim); font-weight: 700; min-height: 1.4em; }
+  #sub.warn { color: var(--gold); }
+  #write { display: flex; gap: 10px; }
+  #fib { flex: 1; min-width: 0; height: 54px; border-radius: 14px; border: 3px solid #ffffff30; background: #ffffff12; color: #fff; padding: 0 14px; font: 700 18px system-ui, sans-serif; box-sizing: border-box; }
+  #fib:focus { outline: none; border-color: var(--gold); }
+  button.go, #write button { min-height: 54px; border: 0; border-radius: 14px; padding: 0 20px; font: 900 17px system-ui, sans-serif; cursor: pointer; background: var(--gold); color: var(--ink); box-shadow: 0 5px 0 #0005; }
+  button.go:active, #write button:active { transform: translateY(3px); box-shadow: 0 2px 0 #0005; }
+  #opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .o { position: relative; min-height: 64px; border: 0; border-radius: 16px; background: #ffffff; color: var(--ink); text-align: left; padding: 10px 14px; font: 800 clamp(15px, 3.2vw, 19px) system-ui, sans-serif;
+       cursor: pointer; box-shadow: 0 5px 0 #0004; transition: transform .12s, opacity .25s, filter .25s, background .25s; display: flex; flex-direction: column; justify-content: center; gap: 6px; box-sizing: border-box; }
+  .o:active { transform: translateY(3px); }
+  .o.mine { background: #d9def0; color: #59618a; cursor: default; }
+  .o.mine::after { content: "your fib"; position: absolute; right: 10px; top: 8px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #59618a; }
+  .o.picked { outline: 4px solid var(--gold); outline-offset: 2px; transform: scale(1.02); }
+  .o.wait { background: #ffffff1c; color: #ffffffb0; box-shadow: none; }
+  .o.now { animation: pop .45s cubic-bezier(.2, 1.6, .4, 1); }
+  .o.fake { background: #ffe1db; }
+  .o.true { background: #c9f7e6; outline: 4px solid var(--mint); outline-offset: 2px; }
+  .o .who { font-size: 13px; font-weight: 800; color: #b23a2a; }
+  .o.true .who { color: #0b7a57; }
+  .o .meta { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; }
+  .o .vs { display: flex; flex-wrap: wrap; gap: 4px; }
+  .dot { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; color: #fff; font-size: 11px; font-weight: 900; box-shadow: 0 0 0 2px #fff; }
+  #players { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: auto; }
+  .p { display: flex; align-items: center; gap: 7px; padding: 5px 11px 5px 5px; border-radius: 999px; background: #ffffff14; font-size: 14px; font-weight: 700; position: relative; }
+  .p .av { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-weight: 900; color: #fff; font-size: 13px; }
+  .p.me { box-shadow: inset 0 0 0 2px var(--gold); }
+  .p.in .av::after { content: "✓"; position: absolute; left: 22px; top: -3px; background: var(--mint); color: #053; border-radius: 50%; width: 16px; height: 16px; font-size: 10px; display: grid; place-items: center; }
+  .p em { font-style: normal; color: var(--gold); }
+  .p .gain { color: var(--mint); font-weight: 900; }
+  #how { display: grid; gap: 10px; }
+  #how div { display: flex; gap: 12px; align-items: center; background: #ffffff10; border-radius: 14px; padding: 10px 14px; font-weight: 700; }
+  #how b { flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--gold); color: var(--ink); font-size: 17px; }
+  #net { text-align: center; font-size: 12px; color: var(--dim); opacity: .85; padding-top: 4px; }
+  #fx { position: fixed; inset: 0; pointer-events: none; z-index: 5; }
+  #over { position: fixed; inset: 0; display: grid; place-items: center; background: #0b1226b0; padding: 16px; z-index: 4; }
+  .card { width: min(380px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; box-sizing: border-box; background: var(--card); color: var(--ink); border-radius: 20px; padding: 18px; text-align: center; box-shadow: 0 20px 60px #0008; }
+  .card h2 { margin: 0 0 4px; font-size: 26px; }
+  .card ol { text-align: left; padding-left: 26px; margin: 8px 0; font-size: 14px; } .card li span { float: right; font-variant-numeric: tabular-nums; }
+  .card h3 { margin: 10px 0 0; font-size: 12px; color: #6a7299; text-transform: uppercase; letter-spacing: .1em; }
+  #oSub { color: #6a7299; font-weight: 700; font-size: 14px; }
+  #oNext { color: #6a7299; font-size: 13px; margin-top: 6px; }
+  @keyframes pop { 0% { transform: scale(.85); } 100% { transform: scale(1); } }
+  @media (max-width: 560px) { header h1 { font-size: 18px; } #name { width: 104px; } #opts { gap: 8px; } .o { min-height: 56px; padding: 8px 10px; } #qcard { padding: 16px 14px; } }
+  @media (max-width: 560px) { #opts.few { grid-template-columns: 1fr; } }
+</style>
+<script src="https://cdn.multiplayeragent.com/sdk/mp.global.js"></script>
+</head>
+<body>
+<div id="app">
+  <header><h1>Fib <span>Finder</span></h1><span id="rn"></span><input id="name" maxlength="14" placeholder="Your name" aria-label="Your name"></header>
+  <div id="bar"><i></i></div>
+  <main>
+    <div id="qcard"><div id="tag">Fib Finder</div><div id="q">Connecting…</div></div>
+    <div id="sub"></div>
+    <div id="how" hidden>
+      <div><b>1</b>A true fact appears with one word missing. The real answer is always strange.</div>
+      <div><b>2</b>Write a fake answer that sounds true. Nobody sees it until the vote.</div>
+      <div><b>3</b>Find the real one among the fakes. Fool others to score too.</div>
+    </div>
+    <form id="write" hidden><input id="fib" maxlength="48" placeholder="Write a fake answer…" autocomplete="off" enterkeyhint="send" aria-label="Your fake answer"><button>Lock in</button></form>
+    <div id="opts" hidden></div>
+    <div id="players"></div>
+  </main>
+  <div id="net"></div>
+</div>
+<canvas id="fx"></canvas>
+<div id="over" hidden><div class="card">
+  <h2 id="oTitle"></h2><div id="oSub"></div><ol id="ranks"></ol>
+  <h3>Best games ever</h3><ol id="board10"><li>Loading the leaderboard…</li></ol>
+  <button class="go" id="again">Play again</button><div id="oNext"></div>
+</div></div>
+<script>
+/* ═══ FIB FINDER · a Multiplayer Agent starter ══════════════════════════════════════════
+ * A strange true fact with a word missing. Everyone writes a fake. Find the truth.
+ * Party, 3–10 players; bots fill empty seats.
+ *
+ * WHERE THINGS ARE (search for the "── " headers):
+ *   CONFIG ........ timers, scoring, seats, how the bots play
+ *   QUESTIONS ..... the facts. q has "____" where the answer goes, a is the true answer,
+ *                   f are fakes the bots may write. Add, remove or swap them freely.
+ *   CONNECTION .... MP_CONNECT, joining, the offline room, who is host
+ *   SEALED SECRETS  the Seal helper: a fake answer is encrypted so only the host can read it
+ *   GAME (HOST) ... the phases (lobby, write, vote, reveal, results), building the answer list,
+ *                   scoring, taking over as a new host
+ *   BOTS (HOST) ... when bots finish writing and what they vote for
+ *   ME ............ writing my fake, voting, handing my fake to a new host
+ *   SCREEN ........ question card, answer cards, the reveal, players, results, leaderboard, effects
+ *   MAIN LOOP ..... heartbeat, host check, autopilot for ?attract
+ *
+ * HOW THE MULTIPLAYER WORKS (a relay room: no server code):
+ *   - The whole game lives in ONE shared field, `game`: {id, v, ph, n, seed, at, endsAt, opts,
+ *     key, truth, votes, gained, scores, bots, ready}. Only the HOST writes it; `v` goes up on
+ *     every write. The host is the lowest sessionId among live players (heartbeat in the last 3s).
+ *   - Which question each round asks comes from game.seed, so every player agrees.
+ *   - FAKES ARE HIDDEN until the vote: each player writes its fake into its OWN entity as `fib`
+ *     = {k, h, box}, where box is SEALED to the host (h) so nobody else can read it. When the host
+ *     changes, every player re-seals its fake to the new host. The host (only) opens them and,
+ *     when writing ends, publishes the shuffled answers (fakes + the truth) in game.opts, with no
+ *     names. Who wrote what (game.key) is published at the reveal.
+ *   - Votes: each player writes `vote` = {k, o} (k = "game.round", o = the answer's index) into
+ *     its own entity. The host reads them when voting ends and scores everyone at once.
+ *   - Bots' fakes come from the question's own list, picked with game.seed, so a new host can
+ *     work them out again. Their progress (wrote / voted) lives in game.bots.
+ *   - Timers are timestamps in `game` (endsAt); a new host carries on from them.
+ *   - Intent: "ready" (Play again on the results screen). Everything else is entity fields.
+ *   - ?attract plays offline with bots only (the preview video is recorded from it).
+ *   - Leaderboard "fib-points": each player's best game.
+ */
+
+// ── CONFIG ──────────────────────────────────────────────────────────────────────────
+const CONFIG = {
+  rounds: 5,              // questions per game
+  seats: 5,               // bots fill the room up to this many players
+  maxPlayers: 10,         // more people than this watch until the next game
+  lobbyMs: 6000,          // countdown before a game
+  writeMs: 45000,         // time to write a fake answer
+  voteMs: 25000,          // time to vote
+  hurryMs: 1500,          // once everyone is in, the phase ends this much later
+  revealLeadMs: 900,      // the reveal waits this long before the first answer flips
+  revealStepMs: 1700,     // each answer gets this long on the reveal
+  revealEndMs: 4000,      // the round's points stay up this long after the last answer
+  resultsMs: 16000,       // the results screen
+  graceMs: 2500,          // a new host waits this long for everyone's fake to be re-sealed to it
+  fibMax: 48,             // characters in a fake answer
+  truthPoints: 1000,      // for picking the real answer
+  foolPoints: 500,        // for every player who picks your fake
+  botTruth: 0.45,         // chance a bot finds the real answer
+  botWriteAt: [0.12, 0.55], // when a bot finishes writing (share of the writing time)
+  botVoteAt: [0.2, 0.75],   // when a bot votes (share of the voting time)
+  board: "fib-points",    // leaderboard name
+};
+const BOT_NAMES = ["Fibbly", "Whopper", "Tall Tale", "Bluffy", "Noodle", "Pocket", "Sly", "Dot", "Waffles"];
+const FRIENDLY = ["Sunny", "Pip", "Biscuit", "Maple", "Pickle", "Wren", "Taco", "Echo", "Juniper", "Clover"];
+const COLORS = ["#ff6b57", "#4c8dff", "#20b486", "#f5a524", "#9b5de5", "#00a8b5", "#ef4f9b", "#7a9a01", "#e2703a", "#5562e8"];
+// Bots use these when the question's own fakes run out.
+const GENERIC_FIBS = ["a rubber duck", "Tuesdays", "exactly seven", "spaghetti", "a tiny hat", "jazz music", "pure glue", "the color blue", "grandma", "nobody knows why"];
+
+// ── QUESTIONS ───────────────────────────────────────────────────────────────────────
+// Every one is TRUE. q: the fact with "____" for the missing answer. a: the real answer.
+// f: fakes the bots can write (players write their own).
+const QUESTIONS = [
+  { q: "A group of flamingos is called a ____.", a: "flamboyance", f: ["blush", "parade", "pinkery"] },
+  { q: "A group of crows is called a ____.", a: "murder", f: ["gossip", "cloak", "scandal"] },
+  { q: "A group of owls is called a ____.", a: "parliament", f: ["library", "hoot", "senate"] },
+  { q: "Wombat poop comes out shaped like ____.", a: "cubes", f: ["stars", "spirals", "tiny pyramids"] },
+  { q: "An octopus has ____ hearts.", a: "three", f: ["two", "five", "eight"] },
+  { q: "Honey found in ancient Egyptian tombs was still ____.", a: "edible", f: ["glowing", "warm", "fizzy"] },
+  { q: "One day on Venus lasts longer than one Venus ____.", a: "year", f: ["summer", "month", "night"] },
+  { q: "Bananas are slightly ____.", a: "radioactive", f: ["magnetic", "electric", "poisonous"] },
+  { q: "The national animal of Scotland is the ____.", a: "unicorn", f: ["red deer", "highland cow", "golden eagle"] },
+  { q: "Sea otters hold ____ while they sleep so they don't drift apart.", a: "hands", f: ["tails", "pebbles", "whiskers"] },
+  { q: "On a hot summer day, the Eiffel Tower can grow about ____ taller.", a: "15 centimeters", f: ["2 meters", "1 meter", "40 centimeters"] },
+  { q: "The shortest war on record, in 1896, lasted about ____.", a: "38 minutes", f: ["3 days", "6 hours", "9 minutes"] },
+  { q: "Fredric Baur designed a famous tube-shaped chip can. Some of his ashes were buried in ____.", a: "one of those cans", f: ["a gold urn", "a time capsule", "his garden shed"] },
+  { q: "In Switzerland it's against the law to keep just one ____.", a: "guinea pig", f: ["cow", "cactus", "cuckoo clock"] },
+  { q: "In the 1830s, ketchup was sold as ____.", a: "medicine", f: ["hair dye", "furniture polish", "perfume"] },
+  { q: "A bolt of lightning is about ____ times hotter than the surface of the Sun.", a: "five", f: ["two", "fifty", "a hundred"] },
+  { q: "Before alarm clocks, people paid a ____ to tap on their window every morning.", a: "knocker-upper", f: ["dawn caller", "window warden", "rooster man"] },
+  { q: "A shrimp's heart is in its ____.", a: "head", f: ["tail", "legs", "back"] },
+  { q: "Butterflies taste their food with their ____.", a: "feet", f: ["wings", "eyes", "knees"] },
+  { q: "The longest attack of hiccups on record lasted ____.", a: "68 years", f: ["9 years", "3 months", "41 days"] },
+  { q: "In 1932, Australia's army fought a war against ____ and lost.", a: "emus", f: ["kangaroos", "rabbits", "koalas"] },
+  { q: "The dot over a lowercase i is called a ____.", a: "tittle", f: ["jot", "pip", "speck"] },
+  { q: "Cleopatra lived closer in time to the Moon landing than to the building of the ____.", a: "Great Pyramid", f: ["Colosseum", "Parthenon", "Great Wall"] },
+  { q: "Oxford University is older than the ____ Empire.", a: "Aztec", f: ["Roman", "Byzantine", "Persian"] },
+  { q: "A blue whale's heart is about the size of a ____.", a: "bumper car", f: ["basketball", "school bus", "bathtub"] },
+  { q: "Some turtles can breathe through their ____.", a: "butts", f: ["shells", "ears", "toes"] },
+  { q: "Peanuts aren't nuts. They're ____.", a: "legumes", f: ["berries", "roots", "grains"] },
+  { q: "Strawberries aren't true berries, but ____ are.", a: "bananas", f: ["cherries", "apples", "plums"] },
+  { q: "A cockroach can live for about a week without its ____.", a: "head", f: ["legs", "antennae", "stomach"] },
+  { q: "One fluffy cumulus cloud can weigh about as much as ____.", a: "100 elephants", f: ["a feather pillow", "a car", "a mountain"] },
+  { q: "Under all that white fur, polar bears have ____ skin.", a: "black", f: ["pink", "blue", "spotted"] },
+  { q: "Try it: you can't hum while you're holding your ____.", a: "nose", f: ["ears", "tongue", "elbows"] },
+  { q: "A sloth can hold its breath longer than a ____.", a: "dolphin", f: ["whale", "seal", "sea turtle"] },
+  { q: "A blue whale's tongue can weigh as much as ____.", a: "an elephant", f: ["a piano", "a horse", "a canoe"] },
+  { q: "The Scots language has more than 400 words for ____.", a: "snow", f: ["rain", "sheep", "fog"] },
+  { q: "In ancient Rome, people used ____ as mouthwash.", a: "urine", f: ["goat milk", "seawater", "crushed mint"] },
+  { q: "Bubble wrap was first invented to be sold as ____.", a: "wallpaper", f: ["shower curtains", "pool toys", "egg boxes"] },
+  { q: "Hippos make a reddish 'blood sweat' that works like ____.", a: "sunscreen", f: ["perfume", "bug glue", "a love potion"] },
+  { q: "Koalas have fingerprints almost identical to ____.", a: "humans'", f: ["pandas'", "dogs'", "frogs'"] },
+  { q: "The oldest known living tree, a bristlecone pine, is about ____ years old.", a: "4,800", f: ["1,200", "900", "12,000"] },
+  { q: "Kangaroos can't ____.", a: "walk backwards", f: ["swim", "sleep lying down", "jump uphill"] },
+  { q: "An ostrich's eye is bigger than its ____.", a: "brain", f: ["heart", "beak", "stomach"] },
+  { q: "Saturn is so light for its size that it would ____ in a big enough bathtub.", a: "float", f: ["melt", "sink", "explode"] },
+  { q: "In colonial New England, lobster was so common it was fed to ____.", a: "prisoners", f: ["kings", "horses", "the mayor"] },
+  { q: "There is a village in Norway called ____.", a: "Hell", f: ["Heaven", "Oops", "Nowhere"] },
+  { q: "Carrots used to be mostly ____ before orange ones caught on.", a: "purple", f: ["blue", "silver", "green"] },
+  { q: "A newborn kangaroo is about the size of a ____.", a: "jellybean", f: ["golf ball", "kitten", "tennis ball"] },
+  { q: "The first computer 'bug' was a real ____.", a: "moth", f: ["beetle", "spider", "cricket"] },
+  { q: "The little plastic tip on a shoelace is called the ____.", a: "aglet", f: ["eyelet", "ender", "lacette"] },
+  { q: "Scientists trained pigeons to tell apart paintings by ____.", a: "Monet and Picasso", f: ["kids and grown-ups", "left-handed painters", "day and night"] },
+  { q: "Every winter, Norway gives London a giant ____.", a: "Christmas tree", f: ["wheel of cheese", "Viking ship", "reindeer statue"] },
+  { q: "In medieval times, a 'moment' was a real unit of time: about ____.", a: "90 seconds", f: ["1 second", "10 minutes", "one heartbeat"] },
+  { q: "With seahorses, it's the dads who ____.", a: "give birth", f: ["change color", "sing", "build nests"] },
+  { q: "Hook-and-loop fasteners were invented after an engineer studied ____ stuck to his dog.", a: "burrs", f: ["spider webs", "cat hair", "gecko feet"] },
+  { q: "The microwave oven was invented after a ____ melted in an engineer's pocket.", a: "chocolate bar", f: ["crayon", "candle", "stick of butter"] },
+  { q: "Goats have ____ pupils.", a: "rectangular", f: ["star-shaped", "triangular", "heart-shaped"] },
+  { q: "Honeybees can learn to recognize human ____.", a: "faces", f: ["voices", "names", "handwriting"] },
+  { q: "A crocodile can't stick out its ____.", a: "tongue", f: ["claws", "eyes", "teeth"] },
+  { q: "The fear of long words is called ____.", a: "hippopotomonstrosesquippedaliophobia", f: ["lexiphobia", "sesquiphobia", "verbosophobia"] },
+  { q: "Russia has more surface area than ____.", a: "Pluto", f: ["the Moon", "Mars", "Africa"] },
+  { q: "Nine-banded armadillos almost always give birth to ____.", a: "identical quadruplets", f: ["twins", "one pup", "eight babies"] },
+  { q: "Rats make tiny laughing sounds when they get ____.", a: "tickled", f: ["cheese", "a hug", "lost"] },
+  { q: "A googol is a 1 followed by ____ zeros.", a: "a hundred", f: ["twelve", "a thousand", "sixty-four"] },
+  { q: "There's a jellyfish that can ____ when it gets old or hurt.", a: "turn back into a baby", f: ["glow brighter", "grow a twin", "walk on land"] },
+  { q: "The world's first webcam was pointed at a ____.", a: "coffee pot", f: ["fish tank", "parking lot", "cat"] },
+  { q: "A baby puffin is called a ____.", a: "puffling", f: ["puffkin", "pufflet", "chickpuff"] },
+  { q: "A baby porcupine is called a ____.", a: "porcupette", f: ["quillet", "pokelet", "spikeling"] },
+  { q: "Apples float because they are about one quarter ____.", a: "air", f: ["sugar", "foam", "wax"] },
+  { q: "A newborn baby has about ____ bones.", a: "300", f: ["150", "206", "1,000"] },
+  { q: "A pineapple plant takes about ____ to grow one pineapple.", a: "two years", f: ["two weeks", "six months", "ten years"] },
+  { q: "Pineapple-topped 'Hawaiian' pizza was invented in ____.", a: "Canada", f: ["Hawaii", "Italy", "Sweden"] },
+  { q: "The Hundred Years' War lasted ____ years.", a: "116", f: ["100", "99", "87"] },
+  { q: "The top floor of the US Supreme Court building has a ____.", a: "basketball court", f: ["bowling alley", "tennis court", "secret library"] },
+  { q: "Australia is wider than the ____.", a: "Moon", f: ["Sahara", "Atlantic Ocean", "planet Mars"] },
+  { q: "The first speeding fine, in England in 1896, was for going ____.", a: "8 mph", f: ["45 mph", "20 mph", "100 mph"] },
+  { q: "Japan has an island overrun by friendly wild ____.", a: "rabbits", f: ["penguins", "goats", "raccoons"] },
+  { q: "In winter, wood frogs ____ and come back to life in spring.", a: "freeze solid", f: ["turn white", "grow fur", "sleep in trees"] },
+  { q: "The oldest known piece of chewed gum is about ____ years old.", a: "5,000", f: ["200", "800", "50,000"] },
+  { q: "Dolphins use special whistles that work like ____.", a: "names", f: ["maps", "jokes", "alarm clocks"] },
+  { q: "The Sahara Desert used to be ____.", a: "green", f: ["covered in ice", "one giant volcano", "made of salt"] },
+  { q: "Avocados are technically ____.", a: "berries", f: ["nuts", "vegetables", "seeds"] },
+];
+
+// ── CONNECTION ──────────────────────────────────────────────────────────────────────
+// The builder fills these in for this game. Downloaded from GitHub? Put your own pk_ key here.
+const MP_CONNECT = {
+  key: 'pk_REPLACE_ME',
+  room: 'fib-finder',
+  endpoint: 'wss://live.multiplayeragent.com',
+  apiUrl: 'https://api.multiplayeragent.com',
+};
+const ATTRACT = new URLSearchParams(location.search).has("attract");
+
+/** Same shape as the SDK client, kept in this tab: offline play and ?attract. */
+function localRoom() {
+  const id = "local", state = { entities: { players: { [id]: {} } }, shared: {} }, subs = [];
+  let queued = false;
+  const emit = () => { if (!queued) { queued = true; queueMicrotask(() => { queued = false; subs.forEach((f) => f(state)); }); } };
+  const put = (o, k, v) => { if (typeof k === "object") Object.assign(o, k); else o[k] = v; emit(); };
+  return {
+    sessionId: id, state, offline: true,
+    me: { set: (k, v) => put(state.entities.players[id], k, v) },
+    setShared: (k, v) => put(state.shared, k, v),
+    onState: (f) => { subs.push(f); f(state); }, onJoin() {}, onLeave() {}, on() {}, send() {},
+    onDisconnect() {}, onReconnect() {}, leave: async () => {},
+  };
+}
+async function connect() {
+  if (ATTRACT || typeof MP === "undefined") return localRoom();
+  try {
+    const mp = await Promise.race([MP.join({ ...MP_CONNECT }), new Promise((_, no) => setTimeout(() => no(new Error("timed out")), 10000))]);
+    window.mp = mp; // the builder calls window.mp.leave() when the page closes
+    return mp;
+  } catch (e) {
+    console.warn("Playing offline:", e && e.message);
+    return localRoom();
+  }
+}
+const parse = (v, fb) => { if (typeof v !== "string") return fb; try { return JSON.parse(v); } catch { return fb; } };
+const memo = new Map();
+/** A JSON field, parsed once per change (numeric-looking values come back as numbers, so check the type). */
+function cached(key, raw, fb) {
+  const m = memo.get(key);
+  if (m && m.raw === raw) return m.v;
+  const v = parse(raw, fb);
+  memo.set(key, { raw, v });
+  return v;
+}
+let net = null, S = { entities: { players: {} }, shared: {} };
+const seenHb = new Map(); // sessionId -> { hb, at } on OUR clock
+/** Players whose heartbeat moved in the last 3s (plus us), sorted by sessionId. */
+function livePlayers() {
+  const now = performance.now(), out = [];
+  for (const [id, p] of Object.entries(S.entities.players || {})) {
+    const s = seenHb.get(id);
+    if (!s || s.hb !== p.hb) seenHb.set(id, { hb: p.hb, at: now });
+    if (id === net.sessionId || now - seenHb.get(id).at < 3000) out.push(id);
+  }
+  return out.sort();
+}
+let hostHold = 0, lastTick = performance.now(); // after a freeze, no hosting before hostHold (see frame())
+/** A tab whose loop has stopped doesn't host, nor for 0.7s after it wakes: the newer state lands first. */
+const isHost = () => performance.now() > hostHold && performance.now() - lastTick < 1000 && livePlayers()[0] === net.sessionId;
+const humans = () => livePlayers().slice(0, CONFIG.maxPlayers);
+const pkOf = (id) => (id === net.sessionId ? Seal.pub : S.entities.players?.[id]?.pk);
+
+// ── SEALED SECRETS ──────────────────────────────────────────────────────────────────
+// Hidden info in a relay room. Everything in room state reaches every client, so a secret
+// (a fake answer before the vote) is written SEALED: encrypted so only its one reader can open
+// it. Each player publishes a public key in its own entity (`pk`); a player seals its fake to
+// the host's key and writes the box into its own `fib` field.
+//   - Only the host can open the fakes (it builds the answer list). Fine for friends, not cheat-proof.
+//   - A new host can't open boxes sealed to the old host, so on a host change every player
+//     re-seals its own fake to the new one.
+//   - crypto.subtle needs https or localhost. Without it seal()/open() pass the value through.
+//   - NEVER plaintext online: with no key for the recipient, seal() returns "" (an empty box).
+const b64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)));
+const unb64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+const Seal = {
+  pair: null,
+  pub: "",
+  keys: new Map(), // other player's public key -> derived AES key
+  get on() { return !!(window.crypto && crypto.subtle); },
+  /** Make this player's key pair. Returns the public key to publish: me.set("pk", pub). */
+  async init() {
+    if (!this.on) return "";
+    this.pair = await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, false, ["deriveKey"]);
+    this.pub = b64(await crypto.subtle.exportKey("raw", this.pair.publicKey));
+    return this.pub;
+  },
+  async key(otherPub) {
+    let k = this.keys.get(otherPub);
+    if (!k) {
+      const theirs = await crypto.subtle.importKey("raw", unb64(otherPub), { name: "ECDH", namedCurve: "P-256" }, false, []);
+      k = await crypto.subtle.deriveKey({ name: "ECDH", public: theirs }, this.pair.privateKey, { name: "AES-GCM", length: 128 }, false, ["encrypt", "decrypt"]);
+      this.keys.set(otherPub, k);
+    }
+    return k;
+  },
+  /** Seal any JSON value so only the holder of `toPub` (and you) can open it. */
+  async seal(toPub, value) {
+    if (!this.on) return "p:" + JSON.stringify(value);
+    if (!toPub || !this.pair) return ""; // never plaintext: nobody can open an empty box
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, await this.key(toPub), new TextEncoder().encode(JSON.stringify(value)));
+    return b64(iv) + "." + b64(ct);
+  },
+  /** Open a box sealed by the player whose public key is `fromPub`. Null if it isn't for you. */
+  async open(fromPub, box) {
+    if (typeof box !== "string") return null;
+    if (box.startsWith("p:")) return JSON.parse(box.slice(2));
+    if (!this.on || !fromPub || !this.pair) return null;
+    try {
+      const [iv, ct] = box.split(".").map(unb64);
+      const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, await this.key(fromPub), ct);
+      return JSON.parse(new TextDecoder().decode(pt));
+    } catch { return null; }
+  },
+};
+
+// ── GAME (HOST) ─────────────────────────────────────────────────────────────────────
+// The host's private memory: the fakes it has opened, and the bots' plan for this phase.
+const host = { last: null, was: false, fibs: new Map(), opened: new Map(), plan: null, graceUntil: 0 };
+
+/** The game as state has it, or the host's own newer write that hasn't come back yet. */
+function game() {
+  const g = cached("game", S.shared.game, null);
+  return host.last && isHost() && (!g || host.last.v > g.v) ? host.last : g;
+}
+function writeGame(g) { g = { ...g, v: (game()?.v ?? 0) + 1 }; host.last = g; net.setShared("game", JSON.stringify(g)); return g; }
+const patch = (changes) => writeGame({ ...game(), ...changes });
+const newGame = (id) => ({ id, ph: "lobby", n: 0, seed: (Math.random() * 1e9) | 0, at: Date.now(), endsAt: Date.now() + CONFIG.lobbyMs,
+  opts: [], key: null, truth: -1, votes: {}, gained: {}, scores: {}, bots: [], ready: [] });
+const roundKey = (g) => `${g.id}.${g.n}`;
+const isBot = (g, id) => !!g && g.bots.some((b) => b.i === id);
+const nameIn = (g, id) => (id === net.sessionId ? myName : g && g.bots.find((b) => b.i === id)?.n) || String(S.entities.players?.[id]?.n ?? "Player").slice(0, 14);
+const colorIn = (g, id) => (id === net.sessionId ? myColor : g && g.bots.find((b) => b.i === id)?.c) || S.entities.players?.[id]?.c || "#8890b0";
+const rnd = (a, b) => a + Math.random() * (b - a);
+const pick = (a) => a[Math.floor(Math.random() * a.length)];
+const shuffle = (a, r = Math.random) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+function mulberry32(a) { return () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+/** Compare answers loosely: case, spaces, punctuation and a leading "a/an/the" don't count. */
+const norm = (s) => String(s).toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim().replace(/^(a|an|the) /, "");
+const cleanFib = (s) => String(s || "").replace(/\s+/g, " ").trim().replace(/[.!]+$/, "").slice(0, CONFIG.fibMax);
+
+/** This game's questions in order: the same for everyone with the same seed. */
+let orderFor = null, order = [];
+function questionOf(g) {
+  if (orderFor !== g.seed) { orderFor = g.seed; order = shuffle(QUESTIONS.map((_, i) => i), mulberry32(g.seed)); }
+  return QUESTIONS[order[g.n % order.length]];
+}
+/** The bots' fakes this round: picked with the seed, so any host works out the same ones. */
+function botFibs(g) {
+  const q = questionOf(g), r = mulberry32((g.seed ^ ((g.n + 1) * 7919)) >>> 0), truth = norm(q.a);
+  const list = [...shuffle([...(q.f || [])], r), ...shuffle([...GENERIC_FIBS], r)].filter((t) => norm(t) !== truth);
+  return { list, of: Object.fromEntries(g.bots.map((b, i) => [b.i, list[i % list.length]])) };
+}
+
+/** Become host: carry on from state. Players re-seal their fakes to me; I wait a moment for them. */
+function adopt() {
+  host.was = true; host.last = null; host.plan = null; host.fibs.clear(); host.opened.clear();
+  host.graceUntil = performance.now() + (net.offline ? 0 : CONFIG.graceMs);
+}
+
+function hostTick() {
+  if (!host.was) adopt();
+  const t = Date.now();
+  let g = game();
+  if (!g) g = writeGame(newGame(1));
+  if (g.ph === "lobby" && t >= g.endsAt) startGame(g, t);
+  else if (g.ph === "write") writeTick(g, t);
+  else if (g.ph === "vote") voteTick(g, t);
+  else if (g.ph === "reveal" && t >= g.endsAt) nextRound(g, t);
+  else if (g.ph === "results" && t >= g.endsAt) writeGame(newGame(g.id + 1));
+}
+
+function startGame(g, t) {
+  const hs = humans(), names = shuffle([...BOT_NAMES]), used = new Set(hs.map((id) => colorIn(g, id)));
+  const free = COLORS.filter((c) => !used.has(c));
+  const bots = Array.from({ length: Math.max(0, CONFIG.seats - hs.length) }, (_, k) => ({ i: "bot" + (k + 1), n: names[k % names.length], c: free[k % free.length] || COLORS[k], f: 0, v: -1 }));
+  host.fibs.clear();
+  patch({ ph: "write", n: 0, at: t, endsAt: t + CONFIG.writeMs, opts: [], key: null, truth: -1, votes: {}, gained: {}, scores: {}, bots, ready: [] });
+}
+
+/** Open every fake sealed to me this round (each box once). */
+function openFibs(g) {
+  const k = roundKey(g), truth = norm(questionOf(g).a);
+  if (myFib && myFib.k === k) host.fibs.set(net.sessionId, { k, t: myFib.t });
+  for (const [id, p] of Object.entries(S.entities.players || {})) {
+    if (id === net.sessionId) continue;
+    const f = cached("fib:" + id, p.fib, null);
+    if (!f || f.k !== k || f.h !== net.sessionId || typeof f.box !== "string" || !f.box) continue;
+    if (host.opened.has(f.box)) { const txt = host.opened.get(f.box); if (txt) host.fibs.set(id, { k, t: txt }); continue; }
+    if (!pkOf(id)) continue;
+    host.opened.set(f.box, "");
+    Seal.open(pkOf(id), f.box).then((v) => {
+      const txt = v && v.k === k ? cleanFib(v.t) : "";
+      host.opened.set(f.box, txt && norm(txt) !== truth ? txt : "");
+    });
+  }
+}
+/** Everyone is in: the phase ends a moment later. */
+function hurry(g, t) { return g.endsAt > t + CONFIG.hurryMs ? patch({ endsAt: t + CONFIG.hurryMs }) : g; }
+const settled = () => performance.now() >= host.graceUntil;
+
+function writeTick(g, t) {
+  openFibs(g);
+  const k = roundKey(g), wrote = (id) => host.fibs.get(id)?.k === k;
+  const writers = humans().filter((id) => pkOf(id) || !Seal.on || net.offline);
+  g = botsWrite(g, t, writers.every(wrote));
+  if (writers.every(wrote) && g.bots.every((b) => b.f) && settled()) g = hurry(g, t);
+  if (t >= g.endsAt && settled()) toVote(g, t);
+}
+
+/** Writing is over: the truth plus every different fake, shuffled, with no names on them. */
+function toVote(g, t) {
+  const k = roundKey(g), q = questionOf(g), seen = new Set([norm(q.a)]), opts = [q.a], bf = botFibs(g).of;
+  const texts = [...[...host.fibs.values()].filter((f) => f.k === k).map((f) => f.t), ...g.bots.filter((b) => b.f).map((b) => bf[b.i])];
+  for (const txt of texts) { const n = norm(txt); if (n && !seen.has(n)) { seen.add(n); opts.push(txt); } }
+  patch({ ph: "vote", opts: shuffle(opts), at: t, endsAt: t + CONFIG.voteMs, bots: g.bots.map((b) => ({ ...b, v: -1 })) });
+}
+
+/** A player's vote this round (the answer's index), or -1. */
+function voteOf(g, id) {
+  const v = id === net.sessionId ? myVote : cached("vote:" + id, S.entities.players?.[id]?.vote, null);
+  return v && v.k === roundKey(g) && typeof v.o === "number" && v.o >= 0 && v.o < g.opts.length ? v.o : -1;
+}
+
+function voteTick(g, t) {
+  openFibs(g); // fakes re-sealed to a new host still arrive here, so the reveal knows who wrote what
+  g = botsVote(g, t, humans().every((id) => voteOf(g, id) >= 0));
+  if (humans().every((id) => voteOf(g, id) >= 0) && g.bots.every((b) => b.v >= 0) && settled()) g = hurry(g, t);
+  if (t >= g.endsAt && settled()) toReveal(g, t);
+}
+
+/** Voting is over: who wrote each answer, who picked it, and the points. All at once. */
+function toReveal(g, t) {
+  const k = roundKey(g), q = questionOf(g), truth = g.opts.findIndex((o) => norm(o) === norm(q.a)), bf = botFibs(g).of;
+  const fibs = {};
+  for (const [id, f] of host.fibs) if (f.k === k) fibs[id] = norm(f.t);
+  for (const b of g.bots) if (b.f) fibs[b.i] = norm(bf[b.i]);
+  const key = g.opts.map((o, i) => (i === truth ? [] : Object.keys(fibs).filter((id) => fibs[id] === norm(o))));
+  const votes = {}, gained = {}, scores = { ...g.scores };
+  for (const id of Object.keys(S.entities.players || {})) { const o = voteOf(g, id); if (o >= 0 && !key[o].includes(id)) votes[id] = o; }
+  for (const b of g.bots) if (b.v >= 0 && !key[b.v].includes(b.i)) votes[b.i] = b.v;
+  for (const [id, o] of Object.entries(votes)) {
+    if (o === truth) gained[id] = (gained[id] || 0) + CONFIG.truthPoints;
+    else for (const a of key[o]) gained[a] = (gained[a] || 0) + CONFIG.foolPoints;
+  }
+  for (const [id, p] of Object.entries(gained)) scores[id] = (scores[id] || 0) + p;
+  patch({ ph: "reveal", key, truth, votes, gained, scores, at: t, endsAt: t + CONFIG.revealLeadMs + g.opts.length * CONFIG.revealStepMs + CONFIG.revealEndMs });
+}
+
+function nextRound(g, t) {
+  host.fibs.clear(); host.opened.clear();
+  if (g.n + 1 < CONFIG.rounds) patch({ ph: "write", n: g.n + 1, at: t, endsAt: t + CONFIG.writeMs, opts: [], key: null, truth: -1, votes: {}, gained: {}, bots: g.bots.map((b) => ({ ...b, f: 0, v: -1 })) });
+  else patch({ ph: "results", at: t, endsAt: t + CONFIG.resultsMs, ready: [] });
+}
+
+/** Play again: once every player is ready, the next game starts a moment later. */
+function onReady(from) {
+  const g = game();
+  if (!g || g.ph !== "results" || g.ready.includes(from)) return;
+  const ready = [...g.ready, from];
+  patch({ ready, endsAt: humans().every((id) => ready.includes(id)) ? Math.min(g.endsAt, Date.now() + 1500) : g.endsAt });
+}
+
+// ── BOTS (HOST) ─────────────────────────────────────────────────────────────────────
+/** The bots' timetable for this phase (a new host makes its own; overdue ones happen at once). */
+function botPlan(g, share, span) {
+  const key = roundKey(g) + g.ph;
+  if (!host.plan || host.plan.key !== key) host.plan = { key, hurried: false, at: new Map(g.bots.map((b) => [b.i, g.at + rnd(...share) * span])) };
+  return host.plan;
+}
+/** Once every person is in, the bots finish within a second or so too. */
+function hurryBots(plan, t) {
+  if (plan.hurried) return;
+  plan.hurried = true;
+  for (const [i, at] of plan.at) plan.at.set(i, Math.min(at, t + rnd(300, 1500)));
+}
+function botsWrite(g, t, peopleDone) {
+  const plan = botPlan(g, CONFIG.botWriteAt, CONFIG.writeMs);
+  if (peopleDone) hurryBots(plan, t);
+  if (!g.bots.some((b) => !b.f && t >= plan.at.get(b.i))) return g;
+  return patch({ bots: g.bots.map((b) => (!b.f && t >= plan.at.get(b.i) ? { ...b, f: 1 } : b)) });
+}
+/** A bot votes for the truth sometimes, else for someone's fake (people's fakes a bit more often). */
+function botChoice(g, b) {
+  const q = questionOf(g), truth = g.opts.findIndex((o) => norm(o) === norm(q.a)), mine = norm(botFibs(g).of[b.i]);
+  if (Math.random() < CONFIG.botTruth) return truth;
+  const human = new Set([...host.fibs.values()].map((f) => norm(f.t)));
+  const pool = [];
+  g.opts.forEach((o, i) => { if (i !== truth && norm(o) !== mine) for (let w = human.has(norm(o)) ? 3 : 1; w > 0; w--) pool.push(i); });
+  return pool.length ? pick(pool) : truth;
+}
+function botsVote(g, t, peopleDone) {
+  const plan = botPlan(g, CONFIG.botVoteAt, CONFIG.voteMs);
+  if (peopleDone) hurryBots(plan, t);
+  if (!g.bots.some((b) => b.v < 0 && t >= plan.at.get(b.i))) return g;
+  return patch({ bots: g.bots.map((b) => (b.v < 0 && t >= plan.at.get(b.i) ? { ...b, v: botChoice(g, b) } : b)) });
+}
+
+// ── ME ──────────────────────────────────────────────────────────────────────────────
+let myName = "", myColor = COLORS[0];
+let myFib = null;  // my fake this round: {k, t, h}; h = the host it is sealed to
+let myVote = null; // {k, o}
+let sealing = false;
+try { myName = localStorage.getItem("mpa-name") || ""; } catch {}
+if (!myName) myName = pick(FRIENDLY) + " " + (10 + Math.floor(Math.random() * 90));
+
+function submitFib(text) {
+  const g = game();
+  if (!g || g.ph !== "write") return;
+  text = cleanFib(text);
+  if (!text) return;
+  if (norm(text) === norm(questionOf(g).a)) { flash("That's the real answer! Write a fake one.", true); return; }
+  myFib = { k: roundKey(g), t: text, h: "" };
+  syncFib();
+  tone(660, 90); setTimeout(() => tone(990, 140), 90);
+}
+/** Keep my fake sealed to whoever is host right now (re-seal when the host changes). */
+async function syncFib() {
+  const g = game(), f = myFib;
+  if (!g || !f || sealing || f.k !== roundKey(g) || (g.ph !== "write" && g.ph !== "vote")) return;
+  const h = livePlayers()[0], pk = pkOf(h);
+  if (f.h === h || (!pk && Seal.on && !net.offline)) return;
+  sealing = true;
+  try {
+    const box = net.offline ? "" : await Seal.seal(pk, { k: f.k, t: f.t });
+    if (myFib !== f || (!box && !net.offline)) return;
+    f.h = h;
+    net.me.set("fib", JSON.stringify({ k: f.k, h, box: box || "-" }));
+  } finally { sealing = false; }
+}
+const mineIdx = (g) => (myFib && myFib.k === roundKey(g) ? g.opts.findIndex((o) => norm(o) === norm(myFib.t)) : -1);
+function vote(o) {
+  const g = game();
+  if (!g || g.ph !== "vote" || o === mineIdx(g) || !(o >= 0 && o < g.opts.length)) return;
+  myVote = { k: roundKey(g), o };
+  net.me.set("vote", JSON.stringify(myVote));
+  tone(520, 80);
+}
+
+// ── SCREEN ──────────────────────────────────────────────────────────────────────────
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const cap = (s) => String(s).charAt(0).toUpperCase() + String(s).slice(1); // every answer is shown the same way, so case gives nothing away
+const setHtml = (el, html) => { if (el.dataset.v !== html) { el.dataset.v = html; el.innerHTML = html; } };
+const setText = (el, s) => { if (el.textContent !== s) el.textContent = s; };
+const fx = $("fx"), fctx = fx.getContext("2d");
+let DPR = 1;
+function fit() { DPR = Math.min(2, devicePixelRatio || 1); fx.width = innerWidth * DPR; fx.height = innerHeight * DPR; fx.style.width = innerWidth + "px"; fx.style.height = innerHeight + "px"; }
+addEventListener("resize", fit); addEventListener("orientationchange", fit);
+
+let flashMsg = "", flashUntil = 0, flashWarn = false;
+function flash(s, warn) { flashMsg = s; flashUntil = performance.now() + 2600; flashWarn = !!warn; }
+
+/** The reveal order: fakes with the fewest votes first, the truth last. */
+function revealOrder(g) {
+  const count = (i) => Object.values(g.votes).filter((o) => o === i).length;
+  return g.opts.map((_, i) => i).filter((i) => i !== g.truth).sort((a, b) => count(a) - count(b) || a - b).concat(g.truth >= 0 ? [g.truth] : []);
+}
+/** How many answers have flipped on the reveal so far. */
+const revealedCount = (g) => (g.ph === "reveal" ? Math.max(0, Math.min(g.opts.length, Math.floor((Date.now() - g.at - CONFIG.revealLeadMs) / CONFIG.revealStepMs) + 1)) : 0);
+
+/** Everyone in the game, people first in seat order, then the bots. */
+function roster(g) {
+  const ids = [...new Set([...humans(), ...(g ? g.bots.map((b) => b.i) : [])])];
+  return ids.map((id) => ({ id, n: nameIn(g, id), c: colorIn(g, id), me: id === net.sessionId, bot: isBot(g, id) }));
+}
+const hasWritten = (g, id) => { if (isBot(g, id)) return !!g.bots.find((b) => b.i === id).f; const f = id === net.sessionId ? myFib : cached("fib:" + id, S.entities.players?.[id]?.fib, null); return !!f && f.k === roundKey(g) && (id !== net.sessionId || !!f.h); };
+const hasVoted = (g, id) => (isBot(g, id) ? g.bots.find((b) => b.i === id).v >= 0 : voteOf(g, id) >= 0);
+
+let dropped = false; // true while the connection is down: the HUD keeps showing "Reconnecting…"
+function render(g) {
+  const n = humans().length;
+  setText($("net"), ATTRACT ? "" : net.offline ? "Offline: playing with bots" : dropped ? "Reconnecting…" : `Online · ${n} player${n === 1 ? "" : "s"}${isHost() ? " · you run the game" : ""}`);
+  if (!g) return;
+  const t = Date.now(), left = Math.max(0, g.endsAt - t), q = questionOf(g);
+  const span = { lobby: CONFIG.lobbyMs, write: CONFIG.writeMs, vote: CONFIG.voteMs, results: CONFIG.resultsMs }[g.ph] || Math.max(1, g.endsAt - g.at);
+  $("bar").firstElementChild.style.transform = `scaleX(${Math.min(1, left / span).toFixed(3)})`;
+  setText($("rn"), g.ph === "lobby" || g.ph === "results" ? "" : `Round ${g.n + 1} of ${CONFIG.rounds}`);
+  $("name").hidden = ATTRACT || g.ph !== "lobby";
+  const live = g.ph !== "lobby" && g.ph !== "results";
+  $("how").hidden = g.ph !== "lobby";
+  // the question card
+  const reveal = g.ph === "reveal", flips = reveal ? revealOrder(g) : [], shown = revealedCount(g), truthOut = reveal && shown >= g.opts.length;
+  setText($("tag"), { lobby: "How to play", write: "Write a fake", vote: "Find the truth", reveal: truthOut ? "The truth" : "The reveal", results: "Game over" }[g.ph]);
+  const [before, after] = q.q.split("____");
+  const qHtml = g.ph === "lobby" ? `Next game in ${Math.ceil(left / 1000)}…` : g.ph === "results" ? "Thanks for playing!"
+    : `${esc(before)}${truthOut ? `<span class="fill">${esc(q.a)}</span>` : '<span class="blank">&nbsp;</span>'}${esc(after ?? "")}`;
+  setHtml($("q"), qHtml);
+  // the line under it
+  let sub = "";
+  const wrote = myFib && myFib.k === roundKey(g);
+  if (performance.now() < flashUntil) sub = flashMsg;
+  else if (g.ph === "lobby") sub = `${CONFIG.rounds} rounds. Bots join if the room is small.`;
+  else if (g.ph === "write") sub = wrote ? `Locked in: “${myFib.t}”. You can change it. ${Math.ceil(left / 1000)}s` : `Write something that sounds true. ${Math.ceil(left / 1000)}s`;
+  else if (g.ph === "vote") sub = myVote && myVote.k === roundKey(g) ? `Picked. Tap another to switch. ${Math.ceil(left / 1000)}s` : `Which one is real? ${Math.ceil(left / 1000)}s`;
+  else if (reveal) sub = truthOut ? (g.votes[net.sessionId] === g.truth ? `You found it! +${g.gained[net.sessionId] || 0}` : g.gained[net.sessionId] ? `You fooled people: +${g.gained[net.sessionId]}` : "Fooled this time.") : "Who wrote what…";
+  setText($("sub"), sub);
+  $("sub").className = performance.now() < flashUntil && flashWarn ? "warn" : "";
+  // writing
+  $("write").hidden = g.ph !== "write";
+  $("write").querySelector("button").textContent = wrote ? "Change" : "Lock in";
+  // the answers
+  $("opts").hidden = !(g.ph === "vote" || reveal);
+  $("opts").classList.toggle("few", g.opts.length <= 5);
+  if (g.ph === "vote" || reveal) renderOpts(g, flips, shown);
+  // the players
+  const people = roster(g).map((p) => ({ ...p, s: (g.scores[p.id] || 0) - (reveal && !truthOut ? g.gained[p.id] || 0 : 0) })) // the round's points land when the truth flips.sort((a, b) => (live || g.ph === "results" ? b.s - a.s : 0));
+  setHtml($("players"), people.map((p) => {
+    const done = (g.ph === "write" && hasWritten(g, p.id)) || (g.ph === "vote" && hasVoted(g, p.id));
+    const gain = reveal && truthOut && g.gained[p.id] ? ` <span class="gain">+${g.gained[p.id]}</span>` : "";
+    return `<div class="p ${p.me ? "me" : ""} ${done ? "in" : ""}"><span class="av" style="background:${esc(p.c)}">${esc(p.n[0] || "?")}</span>${esc(p.n)}${g.ph !== "lobby" ? ` <em>${p.s}</em>` : ""}${gain}</div>`;
+  }).join(""));
+  renderOver(g);
+}
+
+function renderOpts(g, flips, shown) {
+  const mine = mineIdx(g), picked = g.ph === "vote" ? voteOf(g, net.sessionId) : g.votes[net.sessionId] ?? -1;
+  const html = g.opts.map((o, i) => {
+    const cls = ["o"];
+    let extra = "";
+    if (g.ph === "vote") { if (i === mine) cls.push("mine"); if (i === picked) cls.push("picked"); }
+    else {
+      const pos = flips.indexOf(i), out = pos < shown;
+      if (!out) cls.push("wait");
+      else {
+        cls.push(i === g.truth ? "true" : "fake");
+        if (pos === shown - 1) cls.push("now");
+        const by = (g.key[i] || []).map((id) => nameIn(g, id)), voters = Object.keys(g.votes).filter((id) => g.votes[id] === i);
+        extra = `<span class="meta"><span class="who">${i === g.truth ? "THE TRUTH" : by.length ? "Fib by " + esc(by.join(" & ")) : "A fib"}${i !== g.truth && voters.length && by.length ? ` · fooled ${voters.length}` : ""}</span>`
+          + (voters.length ? `<span class="vs">${voters.map((id) => `<span class="dot" style="background:${esc(colorIn(g, id))}" title="${esc(nameIn(g, id))}">${esc(nameIn(g, id)[0])}</span>`).join("")}</span>` : "") + "</span>";
+      }
+      if (i === picked) cls.push("picked");
+    }
+    return `<button class="${cls.join(" ")}" data-o="${i}"><span>${esc(cap(o))}</span>${extra}</button>`;
+  }).join("");
+  setHtml($("opts"), html);
+}
+
+let boardFor = -1, lb = null;
+function renderOver(g) {
+  $("over").hidden = g.ph !== "results";
+  if (g.ph !== "results") return;
+  const ranked = roster(g).map((p) => ({ ...p, s: g.scores[p.id] || 0 })).sort((a, b) => b.s - a.s);
+  const top = ranked[0], tie = ranked[1] && top && ranked[1].s === top.s;
+  setText($("oTitle"), !top || !top.s ? "Game over" : tie ? "It's a tie!" : top.me ? "You win!" : `${top.n} wins!`);
+  setText($("oSub"), `You scored ${g.scores[net.sessionId] || 0}`);
+  setHtml($("ranks"), ranked.map((r, i) => `<li style="${r.me ? "font-weight:800" : ""}">${["🥇", "🥈", "🥉"][i] || ""} ${esc(r.n)}<span>${r.s}</span></li>`).join(""));
+  setText($("oNext"), `Next game in ${Math.max(0, Math.ceil((g.endsAt - Date.now()) / 1000))}s`);
+  setText($("again"), g.ready.includes(net.sessionId) ? "Ready ✓" : "Play again");
+  if (boardFor === g.id) return;
+  boardFor = g.id;
+  const list = $("board10"), score = g.scores[net.sessionId] || 0;
+  if (!lb) { list.innerHTML = "<li>Leaderboards need a connection.</li>"; return; }
+  list.innerHTML = "<li>Loading…</li>";
+  (score > 0 ? lb.submit(score).catch(() => null) : Promise.resolve()).then(() => lb.top(10)).then(({ entries }) => {
+    list.innerHTML = entries.length ? entries.map((e) => `<li>${esc(e.username || "Player")}<span>${e.score}</span></li>`).join("") : "<li>No scores yet. Win one.</li>";
+  }).catch(() => { list.innerHTML = "<li>Couldn't load the leaderboard.</li>"; });
+}
+
+// Sounds and confetti: effects only, nothing here decides anything.
+let AC = null;
+function unlockAudio() { if (!AC && !ATTRACT) try { AC = new AudioContext(); } catch {} }
+function tone(f, ms, type = "sine", vol = 0.05) {
+  if (!AC) return;
+  const o = AC.createOscillator(), gn = AC.createGain(), t = AC.currentTime;
+  o.type = type; o.frequency.value = f; gn.gain.setValueAtTime(vol, t); gn.gain.exponentialRampToValueAtTime(0.0001, t + ms / 1000);
+  o.connect(gn).connect(AC.destination); o.start(t); o.stop(t + ms / 1000);
+}
+const bits = [];
+function burst(x, y, n, colors) { for (let i = 0; i < n; i++) bits.push({ x, y, vx: rnd(-280, 280), vy: rnd(-460, -120), life: 1, c: pick(colors), r: rnd(0, 6) }); }
+function drawFx(dt) {
+  fctx.setTransform(DPR, 0, 0, DPR, 0, 0); fctx.clearRect(0, 0, innerWidth, innerHeight);
+  for (let i = bits.length - 1; i >= 0; i--) {
+    const p = bits[i]; p.vy += 760 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.r += dt * 8; p.life -= dt * 0.75;
+    if (p.life <= 0) { bits.splice(i, 1); continue; }
+    fctx.save(); fctx.translate(p.x, p.y); fctx.rotate(p.r); fctx.globalAlpha = Math.min(1, p.life * 2); fctx.fillStyle = p.c; fctx.fillRect(-5, -3, 10, 6); fctx.restore();
+  }
+}
+const seen = { key: "", shown: 0, ph: "", round: "" };
+function effects(g) {
+  const key = roundKey(g) + g.ph, shown = revealedCount(g);
+  if (g.ph === "write" && seen.round !== roundKey(g)) { // a new question: an empty box, ready to type
+    seen.round = roundKey(g);
+    if (!ATTRACT) { $("fib").value = ""; if (!matchMedia("(pointer: coarse)").matches) $("fib").focus(); }
+  }
+  if (g.ph === "reveal" && seen.key === key && shown > seen.shown) {
+    const i = revealOrder(g)[shown - 1], el = $("opts").querySelector(`[data-o="${i}"]`), r = el ? el.getBoundingClientRect() : { left: innerWidth / 2, top: innerHeight / 2, width: 0, height: 0 };
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    if (i === g.truth) {
+      tone(784, 140); setTimeout(() => tone(1175, 220), 120);
+      burst(cx, cy, g.votes[net.sessionId] === g.truth ? 90 : 30, ["#35dba8", "#ffc94a", "#ffffff", "#6fb6ff"]);
+    } else {
+      const fooled = Object.values(g.votes).filter((o) => o === i).length;
+      tone(fooled ? 330 : 220, 120, "triangle");
+      if (fooled) burst(cx, cy, 10 + fooled * 8, ["#ff6b57", "#ffc94a", "#ef4f9b"]);
+    }
+  }
+  if (g.ph === "results" && seen.ph !== "results") burst(innerWidth / 2, innerHeight * 0.3, 120, COLORS);
+  seen.key = key; seen.shown = shown; seen.ph = g.ph;
+}
+
+/** Two players picked one color (they joined at once): the later sessionId picks another. Bots' colors count as taken. */
+function fixColor() {
+  const ps = S.entities.players || {}, botColors = (game()?.bots || []).map((b) => b.c);
+  if (!Object.entries(ps).some(([id, p]) => id < net.sessionId && p.c === myColor) && !botColors.includes(myColor)) return;
+  const taken = new Set([...Object.entries(ps).filter(([id]) => id !== net.sessionId).map(([, p]) => p.c), ...botColors]);
+  myColor = COLORS.find((c) => !taken.has(c)) || pick(COLORS);
+  net.me.set("c", myColor);
+}
+
+// ── INPUT ───────────────────────────────────────────────────────────────────────────
+$("write").addEventListener("submit", (e) => { e.preventDefault(); unlockAudio(); submitFib($("fib").value); });
+$("opts").addEventListener("click", (e) => { const b = e.target.closest("[data-o]"); if (b) { unlockAudio(); vote(+b.dataset.o); } });
+addEventListener("keydown", (e) => { const g = game(), i = "123456789".indexOf(e.key); if (g && g.ph === "vote" && i >= 0 && document.activeElement.tagName !== "INPUT") vote(i); });
+$("again").addEventListener("click", () => { unlockAudio(); if (isHost()) onReady(net.sessionId); else net.send("ready", { r: 1 }); });
+$("name").addEventListener("change", () => {
+  myName = $("name").value.trim().slice(0, 14) || myName;
+  try { localStorage.setItem("mpa-name", myName); } catch {}
+  net && net.me.set("n", myName);
+});
+
+// ── MAIN LOOP ───────────────────────────────────────────────────────────────────────
+/** ?attract: my player types a fake like a person and votes, so the preview shows the whole loop. */
+const auto = { key: "", text: "", typed: 0, nextAt: 0 };
+function autopilot(g) {
+  if (!ATTRACT || !g) return;
+  const now = performance.now(), key = roundKey(g) + g.ph;
+  if (auto.key !== key) {
+    auto.key = key; auto.typed = 0; auto.nextAt = now + 250; $("fib").value = "";
+    const b = botFibs(g); auto.text = b.list[g.bots.length % b.list.length];
+  }
+  if (g.ph === "write" && auto.typed <= auto.text.length && now >= auto.nextAt) {
+    if (auto.typed < auto.text.length) { auto.typed++; $("fib").value = auto.text.slice(0, auto.typed); auto.nextAt = now + 45; }
+    else { auto.typed++; submitFib(auto.text); }
+  }
+  if (g.ph === "vote" && now >= auto.nextAt + 700 && voteOf(g, net.sessionId) < 0) {
+    const truth = g.opts.findIndex((o) => norm(o) === norm(questionOf(g).a)), others = g.opts.map((_, i) => i).filter((i) => i !== truth && i !== mineIdx(g));
+    vote(Math.random() < 0.6 || !others.length ? truth : pick(others));
+  }
+}
+
+let last = performance.now(), lastHb = 0, lastRender = 0;
+function frame(now) {
+  requestAnimationFrame(frame);
+  if (performance.now() - lastTick > 1000) { hostHold = performance.now() + 700; host.was = false; } // the tab was frozen or in the background: someone else may have hosted meanwhile, so let its state arrive, then adopt it
+  lastTick = performance.now(); // not the rAF time: after a long freeze Chrome can stamp the first frame from before it ended
+  const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now;
+  if (now - lastHb > 1000) { lastHb = now; net.me.set("hb", Date.now()); fixColor(); }
+  if (isHost()) hostTick(); else host.was = false;
+  const g = game();
+  if (g) { syncFib(); autopilot(g); effects(g); }
+  if (now - lastRender > 90) { lastRender = now; render(g); }
+  drawFx(dt);
+}
+
+(async function start() {
+  if (ATTRACT) Object.assign(CONFIG, { seats: 5, lobbyMs: 300, writeMs: 3600, voteMs: 3000, hurryMs: 400, revealLeadMs: 250, revealStepMs: 450, revealEndMs: 1900, resultsMs: 4000, botWriteAt: [0.15, 0.7], botVoteAt: [0.2, 0.7] });
+  fit();
+  net = await connect();
+  net.onState((st) => { S = st; });
+  net.onDisconnect(() => { dropped = true; $("net").textContent = "Reconnecting…"; });
+  net.onReconnect(() => { dropped = false; });
+  net.on("ready", (msg, from) => { if (isHost()) onReady(from); });
+  if (!net.offline && typeof MP !== "undefined") lb = MP.auth({ key: MP_CONNECT.key, apiUrl: MP_CONNECT.apiUrl }).leaderboard(CONFIG.board);
+  const pk = await Seal.init().catch(() => "");
+  const taken = new Set([...Object.entries(S.entities.players || {}).filter(([id]) => id !== net.sessionId).map(([, p]) => p.c), ...(game()?.bots || []).map((b) => b.c)]);
+  myColor = COLORS.find((c) => !taken.has(c)) || pick(COLORS);
+  $("name").value = myName;
+  net.me.set({ n: myName, c: myColor, hb: Date.now(), pk });
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
