@@ -64,6 +64,7 @@
   .card { width: min(380px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; box-sizing: border-box; background: var(--card); color: var(--ink); border-radius: 20px; padding: 18px; text-align: center; box-shadow: 0 20px 60px #0008; }
   .card h2 { margin: 0 0 4px; font-size: 26px; }
   .card ol { text-align: left; padding-left: 26px; margin: 8px 0; font-size: 14px; } .card li span { float: right; font-variant-numeric: tabular-nums; }
+  .card li.note { list-style: none; margin-left: -26px; opacity: .8; } /* a message in place of a list: no "1." in front of it */
   .card h3 { margin: 10px 0 0; font-size: 12px; color: #6a7299; text-transform: uppercase; letter-spacing: .1em; }
   #oSub { color: #6a7299; font-weight: 700; font-size: 14px; }
   #oNext { color: #6a7299; font-size: 13px; margin-top: 6px; }
@@ -94,7 +95,7 @@
 <canvas id="fx"></canvas>
 <div id="over" hidden><div class="card">
   <h2 id="oTitle"></h2><div id="oSub"></div><ol id="ranks"></ol>
-  <h3>Best games ever</h3><ol id="board10"><li>Loading the leaderboard…</li></ol>
+  <h3>Best games ever</h3><ol id="board10"><li class="note">Loading the leaderboard…</li></ol>
   <button class="go" id="again">Play again</button><div id="oNext"></div>
 </div></div>
 <script>
@@ -657,7 +658,8 @@ function render(g) {
   $("opts").classList.toggle("few", g.opts.length <= 5);
   if (g.ph === "vote" || reveal) renderOpts(g, flips, shown);
   // the players
-  const people = roster(g).map((p) => ({ ...p, s: (g.scores[p.id] || 0) - (reveal && !truthOut ? g.gained[p.id] || 0 : 0) })) // the round's points land when the truth flips.sort((a, b) => (live || g.ph === "results" ? b.s - a.s : 0));
+  const people = roster(g).map((p) => ({ ...p, s: (g.scores[p.id] || 0) - (reveal && !truthOut ? g.gained[p.id] || 0 : 0) })) // the round's points land when the truth flips
+    .sort((a, b) => (live || g.ph === "results" ? b.s - a.s : 0)); // highest score first
   setHtml($("players"), people.map((p) => {
     const done = (g.ph === "write" && hasWritten(g, p.id)) || (g.ph === "vote" && hasVoted(g, p.id));
     const gain = reveal && truthOut && g.gained[p.id] ? ` <span class="gain">+${g.gained[p.id]}</span>` : "";
@@ -703,11 +705,11 @@ function renderOver(g) {
   if (boardFor === g.id) return;
   boardFor = g.id;
   const list = $("board10"), score = g.scores[net.sessionId] || 0;
-  if (!lb) { list.innerHTML = "<li>Leaderboards need a connection.</li>"; return; }
-  list.innerHTML = "<li>Loading…</li>";
+  if (!lb) { list.innerHTML = `<li class="note">Leaderboards need a connection.</li>`; return; }
+  list.innerHTML = `<li class="note">Loading…</li>`;
   (score > 0 ? lb.submit(score).catch(() => null) : Promise.resolve()).then(() => lb.top(10)).then(({ entries }) => {
-    list.innerHTML = entries.length ? entries.map((e) => `<li>${esc(e.username || "Player")}<span>${e.score}</span></li>`).join("") : "<li>No scores yet. Win one.</li>";
-  }).catch(() => { list.innerHTML = "<li>Couldn't load the leaderboard.</li>"; });
+    list.innerHTML = entries.length ? entries.map((e) => `<li>${esc(e.username || "Player")}<span>${e.score}</span></li>`).join("") : `<li class="note">No scores yet. Win one.</li>`;
+  }).catch(() => { list.innerHTML = `<li class="note">Couldn't load the leaderboard.</li>`; });
 }
 
 // Sounds and confetti: effects only, nothing here decides anything.
